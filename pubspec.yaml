@@ -1,7 +1,7 @@
 name: remote_app_blocker
 description: >
   Remotely block a Flutter app (e.g. when a client refuses to pay) and show a custom page/message.
-version: 0.0.1
+version: 0.0.2
 homepage: https://github.com/Damscozy/remote_app_blocker.git
 
 environment:

@@ -1,7 +1,7 @@
 # 📦 remote_app_blocker  
 
 [![Pub Version](https://img.shields.io/pub/v/remote_app_blocker.svg)](https://pub.dev/packages/remote_app_blocker)
-[![GitHub stars](https://img.shields.io/github/stars/YOUR_GITHUB_USERNAME/remote_app_blocker.svg?style=social)](https://github.com/damscozy/remote_app_blocker)
+[![GitHub stars](https://img.shields.io/github/stars/damscozy/remote_app_blocker.svg?style=social)](https://github.com/damscozy/remote_app_blocker)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ### Remotely block a Flutter app & show a custom message until payment or compliance is resolved.

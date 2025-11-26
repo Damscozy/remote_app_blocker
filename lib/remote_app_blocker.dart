@@ -1,5 +1,7 @@
 library;
 
+import 'dart:async';
+
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -210,6 +212,15 @@ class RemoteAppGate extends StatefulWidget {
   /// Whether to cache last decision (blocked/unblocked) locally.
   final bool cacheLastDecision;
 
+  /// How often to check for configuration updates.
+  /// Set to Duration.zero to disable periodic refresh.
+  /// Default is 5 minutes.
+  final Duration refreshInterval;
+
+  /// Callback when the block status changes.
+  /// Useful for analytics or notifications.
+  final void Function(bool isBlocked, String message)? onStatusChanged;
+
   const RemoteAppGate({
     super.key,
     required this.providers,
@@ -219,6 +230,8 @@ class RemoteAppGate extends StatefulWidget {
     this.errorPage,
     this.appVersion,
     this.cacheLastDecision = true,
+    this.refreshInterval = const Duration(minutes: 5),
+    this.onStatusChanged,
   });
 
   @override
@@ -230,6 +243,7 @@ class _RemoteAppGateState extends State<RemoteAppGate> {
   bool _hasError = false;
   bool _isBlocked = false;
   String _message = '';
+  Timer? _refreshTimer;
 
   static const _prefsBlockedKey = 'rab_isBlocked';
   static const _prefsMessageKey = 'rab_message';
@@ -238,6 +252,65 @@ class _RemoteAppGateState extends State<RemoteAppGate> {
   void initState() {
     super.initState();
     _init();
+    _startPeriodicRefresh();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startPeriodicRefresh() {
+    if (widget.refreshInterval > Duration.zero) {
+      _refreshTimer = Timer.periodic(widget.refreshInterval, (_) {
+        _refreshConfig();
+      });
+    }
+  }
+
+  /// Manually refresh the block configuration.
+  /// Useful for pull-to-refresh or manual checks.
+  Future<void> _refreshConfig() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    try {
+      RemoteBlockConfig? config;
+
+      for (final provider in widget.providers) {
+        config = await provider.loadConfig();
+        if (config != null) break;
+      }
+
+      if (config != null) {
+        final newIsBlocked = _evaluateConfig(config, widget.appVersion);
+        final newMessage = config.message.isEmpty
+            ? 'The app is currently unavailable.'
+            : config.message;
+
+        // Only update if status changed
+        if (newIsBlocked != _isBlocked || newMessage != _message) {
+          if (mounted) {
+            setState(() {
+              _isBlocked = newIsBlocked;
+              _message = newMessage;
+              _hasError = false;
+            });
+          }
+
+          // Notify callback
+          widget.onStatusChanged?.call(_isBlocked, _message);
+
+          // Update cache
+          if (widget.cacheLastDecision) {
+            await prefs.setBool(_prefsBlockedKey, _isBlocked);
+            await prefs.setString(_prefsMessageKey, _message);
+          }
+        }
+      }
+    } catch (_) {
+      // Silently fail on refresh errors - keep current state
+    }
   }
 
   Future<void> _init() async {
@@ -269,6 +342,9 @@ class _RemoteAppGateState extends State<RemoteAppGate> {
             ? 'The app is currently unavailable.'
             : config.message;
         _hasError = false;
+
+        // Notify callback on initial load
+        widget.onStatusChanged?.call(_isBlocked, _message);
 
         if (widget.cacheLastDecision) {
           await prefs.setBool(_prefsBlockedKey, _isBlocked);

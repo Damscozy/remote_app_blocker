@@ -55,10 +55,12 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  remote_app_blocker: ^0.0.1
+  remote_app_blocker: ^0.0.3
+```
 
+## 🚀 Quick Start
 
-``` dart
+```dart
 import 'package:flutter/material.dart';
 import 'package:remote_app_blocker/remote_app_blocker.dart';
 
@@ -120,7 +122,9 @@ class HomePage extends StatelessWidget {
 }
 ```
 
-🌐 Remote JSON Format (HTTP Source)
+---
+
+## 🌐 Remote JSON Format (HTTP Source)
 Upload a JSON file such as:
 ```json
 {
@@ -132,7 +136,8 @@ Upload a JSON file such as:
 }
 ```
 
-Unblock:
+**Unblock:**
+
 ```json
 {
   "isBlocked": false,
@@ -141,9 +146,11 @@ Unblock:
 }
 ```
 
-⚙ Advanced Blocking Rules
+---
 
-🔹 Block a specific app version
+## ⚙️ Advanced Blocking Rules
+
+### 🔹 Block a specific app version
 
 ```json
 {
@@ -153,7 +160,7 @@ Unblock:
 }
 ```
 
-🔹 Scheduled blocking (block between dates)
+### 🔹 Scheduled blocking (block between dates)
 
 ```json
 {
@@ -164,7 +171,7 @@ Unblock:
 }
 ```
 
-🔹 Forced block
+### 🔹 Forced block
 
 ```json
 {
@@ -174,7 +181,9 @@ Unblock:
 }
 ```
 
-🔒 Optional Security (HMAC Signature)
+---
+
+## 🔒 Optional Security (HMAC Signature)
 
 To prevent clients from editing JSON on their own server, you can attach a signature:
 
@@ -191,17 +200,17 @@ To prevent clients from editing JSON on their own server, you can attach a signa
 
 Using these fields (in this order):
 
-isBlocked | blockMessage | blockedVersions | blockFrom | blockUntil
+`isBlocked` | `blockMessage` | `blockedVersions` | `blockFrom` | `blockUntil`
 
-The Flutter package will recompute and verify this signature if hmacSecret is provided to HttpBlockStatusProvider.
+The Flutter package will recompute and verify this signature if `hmacSecret` is provided to `HttpBlockStatusProvider`.
 
-See Automated HMAC signing scripts below for ready-made backend tools.
+See **Automated HMAC signing scripts** below for ready-made backend tools.
 
-⸻
+---
 
-🔥 Firebase Support
+## 🔥 Firebase Support
 
-Firestore
+### Firestore
 
 Create a document (e.g. apps/your_app_id) containing the same JSON schema.
 
@@ -217,7 +226,8 @@ Example document:
 }
 
 ```
-Use provider:
+
+**Use provider:**
 
 ```dart
 FirestoreBlockStatusProvider(
@@ -227,11 +237,11 @@ FirestoreBlockStatusProvider(
 ),
 ```
 
-Firebase Remote Config
+### Firebase Remote Config
 
-Set a parameter (e.g. app_block_config) to a JSON string with the same schema.
+Set a parameter (e.g. `app_block_config`) to a JSON string with the same schema.
 
-Use provider:
+**Use provider:**
 
 ```dart
 RemoteConfigBlockStatusProvider(
@@ -239,18 +249,19 @@ RemoteConfigBlockStatusProvider(
   key: "app_block_config",
 ),
 ```
-⸻
+---
 
-🧩 API Overview
+## 🧩 API Overview
 
-Providers
+### Providers
 
-Provider	Source	Use Case
-HttpBlockStatusProvider	JSON over HTTP	Most freelancers/agencies
-FirestoreBlockStatusProvider	Firestore document	Real-time, multi-tenant apps
-RemoteConfigBlockStatusProvider	Firebase Remote Config	Feature flag / config toggles
+| Provider | Source | Use Case |
+|----------|--------|----------|
+| `HttpBlockStatusProvider` | JSON over HTTP | Most freelancers/agencies |
+| `FirestoreBlockStatusProvider` | Firestore document | Real-time, multi-tenant apps |
+| `RemoteConfigBlockStatusProvider` | Firebase Remote Config | Feature flag / config toggles |
 
-Main Widget
+### Main Widget
 
 ```dart
 RemoteAppGate(
@@ -259,17 +270,15 @@ RemoteAppGate(
 );
 ```
 
-⸻
+---
 
-
-⚙ Automated HMAC Signing Scripts (Backend)
+## ⚙️ Automated HMAC Signing Scripts (Backend)
 
 Use these scripts to generate JSON + signature on the server side.
 
-Node.js (CLI tool)
+### Node.js (CLI tool)
 
-```js
-tools/sign-config.js:
+**File:** `tools/sign-config.js`
 
 #!/usr/bin/env node
 const crypto = require("crypto");
@@ -313,19 +322,18 @@ module.exports = { signConfig };
 
 ```
 
-Usage:
+**Usage:**
 
-
-```js
+```bash
 export RAB_HMAC_SECRET="SAME_SECRET_AS_IN_APP"
 node tools/sign-config.js config.json > app-status.json
 ```
 
-⸻
+---
 
-Python script
+### Python script
 
-tools/sign_config.py:
+**File:** `tools/sign_config.py`
 
 ```py
 #!/usr/bin/env python3
@@ -370,18 +378,19 @@ if __name__ == "__main__":
     print(json.dumps(signed, indent=2))
 
 ```
-Usage:
 
-```py
+**Usage:**
+
+```bash
 export RAB_HMAC_SECRET="SAME_SECRET_AS_IN_APP"
 python tools/sign_config.py config.json > app-status.json
 ```
 
-⸻
+---
 
-PHP function
+### PHP function
 
-tools/sign_config.php:
+**File:** `tools/sign_config.php`
 ```php
 <?php
 
@@ -409,14 +418,13 @@ function sign_config(array $config, string $secret): array
     return $config;
 }
 ```
-<!-- 
-remote_app_blocker/screenshots/blocked-page-light.png -->
-<!-- remote_app_blocker/screenshots/blocked-page-dark.png -->
-⸻
 
-❤️ Contributing
+---
 
-PRs and issues welcome.
-If you want, I can next help you:
-	•	Turn this into a real pub.dev package entry, or
-	•	Wire package_info_plus into the example to auto-read appVersion.
+## ❤️ Contributing
+
+PRs and issues welcome! Feel free to contribute improvements, bug fixes, or additional providers.
+
+## 📝 License
+
+MIT License - see [LICENSE](LICENSE) file for details.

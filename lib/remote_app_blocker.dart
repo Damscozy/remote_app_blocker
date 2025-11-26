@@ -176,6 +176,7 @@ class RemoteConfigBlockStatusProvider implements BlockStatusProvider {
     if (jsonString.isEmpty) return null;
 
     final Map<String, dynamic> data = jsonDecode(jsonString);
+    print(data);
     return RemoteBlockConfig.fromJson(data);
   }
 }

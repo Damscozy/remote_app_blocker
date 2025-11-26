@@ -37,6 +37,8 @@ class MyFirebaseApp extends StatelessWidget {
 
     return RemoteAppGate(
       appVersion: appVersion,
+
+      // Provider priority order (first one with data wins)
       providers: [
         // Option 1: Firebase Remote Config Provider
         // Set up in Firebase Console:
@@ -69,6 +71,20 @@ class MyFirebaseApp extends StatelessWidget {
           hmacSecret: "SUPER_SECRET_KEY_CHANGE_ME",
         ),
       ],
+
+      // Check for updates every 1 minute (good for Firebase)
+      // Remote Config updates will be detected automatically!
+      refreshInterval: const Duration(minutes: 1),
+
+      // Get notified when block status changes
+      onStatusChanged: (isBlocked, message) {
+        debugPrint('🔔 Block status changed: isBlocked=$isBlocked');
+        debugPrint('📝 Message: $message');
+        // Perfect for:
+        // - Showing user notifications
+        // - Logging to Firebase Analytics
+        // - Triggering app-wide state changes
+      },
 
       blockedBuilder: (context, msg) {
         return Scaffold(

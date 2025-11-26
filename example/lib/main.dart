@@ -22,6 +22,8 @@ class MyRoot extends StatelessWidget {
 
     return RemoteAppGate(
       appVersion: appVersion,
+
+      // Providers to check (first one with data wins)
       providers: [
         HttpBlockStatusProvider(
           url: "https://yourdomain.com/app-status.json",
@@ -41,6 +43,21 @@ class MyRoot extends StatelessWidget {
         //   key: "app_block_config",
         // ),
       ],
+
+      // NEW: Automatically check for updates every 5 minutes
+      // The UI will update dynamically when isBlocked changes!
+      refreshInterval: const Duration(seconds: 10),
+
+      // NEW: Get notified when block status changes
+      onStatusChanged: (isBlocked, message) {
+        debugPrint(
+          'Block status changed: isBlocked=$isBlocked, message=$message',
+        );
+        // You can:
+        // - Show a snackbar
+        // - Send analytics
+        // - Trigger notifications
+      },
 
       // Custom blocked page (optional; default is DefaultBlockedPage)
       blockedBuilder: (context, msg) {

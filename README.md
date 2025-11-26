@@ -38,6 +38,7 @@ Optional custom styling example:
 ## ✨ Features
 
 - **Remote control** via JSON, Firestore, or Firebase Remote Config  
+- **Real-time updates** (auto-refresh UI when status changes)
 - **Block by flag** (`isBlocked = true`)  
 - **Block specific app versions** (`blockedVersions`)  
 - **Schedule-based blocking** (`blockFrom` / `blockUntil`)  
@@ -75,6 +76,15 @@ class MyRoot extends StatelessWidget {
   Widget build(BuildContext context) {
     return RemoteAppGate(
       appVersion: "1.0.0", // example — use package_info_plus to fetch real version
+      
+      // Check for updates every 5 minutes (default)
+      refreshInterval: const Duration(minutes: 5),
+
+      // Callback when status changes
+      onStatusChanged: (isBlocked, message) {
+        print("Block status changed: $isBlocked");
+      },
+
       providers: [
         HttpBlockStatusProvider(
           url: "https://yourdomain.com/app-status.json",

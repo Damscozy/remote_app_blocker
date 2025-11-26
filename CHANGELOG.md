@@ -9,8 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.0.3+2] - 2025-11-26
 
-### Fixed
+### Added
+- Real-time block status updates via `refreshInterval`
+- `onStatusChanged` callback for monitoring block status changes
+- Improved example with Firebase real-time updates
 
+### Fixed
 - Fixed README.md formatting issues (code blocks, section headers, tables)
 - Updated documentation to reflect current version
 - Improved example code structure and comments

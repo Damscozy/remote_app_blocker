@@ -42,7 +42,7 @@ packages:
     source: hosted
     version: "1.1.2"
   cloud_firestore:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: cloud_firestore
       sha256: "2d33da4465bdb81b6685c41b535895065adcb16261beb398f5f3bbc623979e9c"
@@ -106,7 +106,7 @@ packages:
     source: hosted
     version: "7.0.1"
   firebase_core:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: firebase_core
       sha256: "7be63a3f841fc9663342f7f3a011a42aef6a61066943c90b1c434d79d5c995c5"
@@ -130,7 +130,7 @@ packages:
     source: hosted
     version: "2.24.1"
   firebase_remote_config:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: firebase_remote_config
       sha256: e1635b1e8713f4a823920ec3a56a14034b90ce455d47746ab0da994857f370cf
@@ -453,5 +453,5 @@ packages:
     source: hosted
     version: "1.1.0"
 sdks:
-  dart: ">=3.9.2 <4.0.0"
+  dart: ">=3.9.0 <4.0.0"
   flutter: ">=3.35.0"

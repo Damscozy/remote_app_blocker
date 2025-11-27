@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `onStatusChanged` callback for monitoring block status changes
 - `initTimeout` parameter to prevent indefinite loading (default 10s)
 - `didUpdateWidget` support for dynamic configuration changes
+- `BlockedPageStyle` for easy UI customization
+- `AnimatedSwitcher` for smooth transitions
+- `animationDuration` and `animationCurve` parameters
 - Improved example with Firebase real-time updates
 
 ### Fixed

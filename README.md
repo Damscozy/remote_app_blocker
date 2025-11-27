@@ -88,6 +88,28 @@ class MyRoot extends StatelessWidget {
         print("Block status changed: $isBlocked");
       },
 
+      // Custom animation settings (default: 500ms, Curves.easeInOut)
+      animationDuration: const Duration(milliseconds: 800),
+      animationCurve: Curves.easeInOutBack,
+
+      // Easy customization without a full builder
+      blockedPageStyle: BlockedPageStyle(
+        backgroundColor: Colors.grey.shade900,
+        cardColor: Colors.grey.shade800,
+        titleStyle: const TextStyle(
+          color: Colors.redAccent,
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+        ),
+        messageStyle: const TextStyle(
+          color: Colors.white70,
+          fontSize: 16,
+        ),
+        icon: Icons.cloud_off_rounded,
+        iconColor: Colors.redAccent,
+        borderRadius: BorderRadius.circular(24),
+      ),
+
       providers: [
         HttpBlockStatusProvider(
           url: "https://yourdomain.com/app-status.json",

@@ -91,14 +91,12 @@ class HttpBlockStatusProvider implements BlockStatusProvider {
 
   @override
   Future<RemoteBlockConfig?> loadConfig() async {
-    final response = await http
-        .get(Uri.parse(url))
-        .timeout(
-          timeout,
-          onTimeout: () {
-            throw Exception('HTTP timeout');
-          },
-        );
+    final response = await http.get(Uri.parse(url)).timeout(
+      timeout,
+      onTimeout: () {
+        throw Exception('HTTP timeout');
+      },
+    );
 
     if (response.statusCode != 200) return null;
 
@@ -155,10 +153,8 @@ class FirestoreBlockStatusProvider implements BlockStatusProvider {
 
   @override
   Future<RemoteBlockConfig?> loadConfig() async {
-    final doc = await firestore
-        .collection(collectionPath)
-        .doc(documentId)
-        .get();
+    final doc =
+        await firestore.collection(collectionPath).doc(documentId).get();
 
     if (!doc.exists) return null;
     final data = doc.data();
@@ -262,6 +258,18 @@ class RemoteAppGate extends StatefulWidget {
   /// Useful for analytics or notifications.
   final void Function(bool isBlocked, String message)? onStatusChanged;
 
+  /// Style configuration for the default blocked page.
+  /// Ignored if [blockedBuilder] is provided.
+  final BlockedPageStyle? blockedPageStyle;
+
+  /// Duration of the transition animation between blocked and unblocked states.
+  /// Default is 500ms.
+  final Duration animationDuration;
+
+  /// Curve of the transition animation.
+  /// Default is Curves.easeInOut.
+  final Curve animationCurve;
+
   const RemoteAppGate({
     super.key,
     required this.providers,
@@ -274,6 +282,9 @@ class RemoteAppGate extends StatefulWidget {
     this.refreshInterval = const Duration(minutes: 5),
     this.initTimeout = const Duration(seconds: 10),
     this.onStatusChanged,
+    this.blockedPageStyle,
+    this.animationDuration = const Duration(milliseconds: 500),
+    this.animationCurve = Curves.easeInOut,
   });
 
   @override
@@ -507,6 +518,20 @@ class _RemoteAppGateState extends State<RemoteAppGate> {
       return widget.errorPage ?? widget.child;
     }
 
+    final child = _buildContent(context);
+
+    return AnimatedSwitcher(
+      duration: widget.animationDuration,
+      switchInCurve: widget.animationCurve,
+      switchOutCurve: widget.animationCurve,
+      child: KeyedSubtree(
+        key: ValueKey<bool>(_isBlocked),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     if (_isBlocked) {
       final msg = _message.isEmpty
           ? 'The app is currently on hold until the client pays the developer.'
@@ -516,48 +541,93 @@ class _RemoteAppGateState extends State<RemoteAppGate> {
         return widget.blockedBuilder!(context, msg);
       }
 
-      return DefaultBlockedPage(message: msg);
+      return DefaultBlockedPage(
+        message: msg,
+        style: widget.blockedPageStyle,
+      );
     }
 
     return widget.child;
   }
 }
 
+/// Style configuration for the default blocked page.
+class BlockedPageStyle {
+  final Color? backgroundColor;
+  final Color? cardColor;
+  final TextStyle? titleStyle;
+  final TextStyle? messageStyle;
+  final IconData? icon;
+  final Color? iconColor;
+  final double? iconSize;
+  final EdgeInsetsGeometry? padding;
+  final BorderRadiusGeometry? borderRadius;
+  final Border? border;
+
+  const BlockedPageStyle({
+    this.backgroundColor,
+    this.cardColor,
+    this.titleStyle,
+    this.messageStyle,
+    this.icon,
+    this.iconColor,
+    this.iconSize,
+    this.padding,
+    this.borderRadius,
+    this.border,
+  });
+}
+
 /// Default blocked page UI. You can override using [blockedBuilder].
 class DefaultBlockedPage extends StatelessWidget {
   final String message;
-  const DefaultBlockedPage({super.key, required this.message});
+  final BlockedPageStyle? style;
+
+  const DefaultBlockedPage({
+    super.key,
+    required this.message,
+    this.style,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveStyle = style ?? const BlockedPageStyle();
+
     return Scaffold(
-      backgroundColor: Colors.red.shade50,
+      backgroundColor: effectiveStyle.backgroundColor ?? Colors.red.shade50,
       body: Center(
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: effectiveStyle.padding ?? const EdgeInsets.all(24),
           margin: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.red),
+            color: effectiveStyle.cardColor ?? Colors.white,
+            borderRadius:
+                effectiveStyle.borderRadius ?? BorderRadius.circular(16),
+            border: effectiveStyle.border ?? Border.all(color: Colors.red),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.lock, size: 48),
+              Icon(
+                effectiveStyle.icon ?? Icons.lock,
+                size: effectiveStyle.iconSize ?? 48,
+                color: effectiveStyle.iconColor,
+              ),
               const SizedBox(height: 16),
               Text(
                 "App On Hold",
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: effectiveStyle.titleStyle ??
+                    Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
               ),
               const SizedBox(height: 12),
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 18),
+                style: effectiveStyle.messageStyle ??
+                    const TextStyle(fontSize: 18),
               ),
             ],
           ),

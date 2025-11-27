@@ -48,11 +48,31 @@ class MyRoot extends StatelessWidget {
       // The UI will update dynamically when isBlocked changes!
       refreshInterval: const Duration(seconds: 10),
 
-      // NEW: Get notified when block status changes
+      // Custom animation settings
+      animationDuration: const Duration(milliseconds: 800),
+      animationCurve: Curves.easeInOutBack,
+
+      // Easy customization without a full builder
+      blockedPageStyle: BlockedPageStyle(
+        backgroundColor: Colors.grey.shade900,
+        cardColor: Colors.grey.shade800,
+        titleStyle: const TextStyle(
+          color: Colors.redAccent,
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+        ),
+        messageStyle: const TextStyle(
+          color: Colors.white70,
+          fontSize: 16,
+        ),
+        icon: Icons.cloud_off_rounded,
+        iconColor: Colors.redAccent,
+        borderRadius: BorderRadius.circular(24),
+      ),
+
+      // Callback when status changes
       onStatusChanged: (isBlocked, message) {
-        debugPrint(
-          'Block status changed: isBlocked=$isBlocked, message=$message',
-        );
+        debugPrint('Status changed: $isBlocked');
         // You can:
         // - Show a snackbar
         // - Send analytics

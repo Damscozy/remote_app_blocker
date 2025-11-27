@@ -7,17 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.0.3+3] - 2025-11-26
+## [0.0.3+4] - 2025-11-26
 
 ### Added
-- Real-time block status updates via `refreshInterval`
+- Real-time block status updates via `refreshInterval` and Stream-based providers
 - `onStatusChanged` callback for monitoring block status changes
+- `initTimeout` parameter to prevent indefinite loading (default 10s)
+- `didUpdateWidget` support for dynamic configuration changes
 - Improved example with Firebase real-time updates
 
 ### Fixed
 - Fixed README.md formatting issues (code blocks, section headers, tables)
 - Updated documentation to reflect current version
 - Improved example code structure and comments
+- Optimized initialization logic and memory management
 
 ## [0.0.2] - 2025-11-25
 

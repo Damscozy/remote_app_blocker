@@ -80,6 +80,9 @@ class MyRoot extends StatelessWidget {
       // Check for updates every 5 minutes (default)
       refreshInterval: const Duration(minutes: 5),
 
+      // Timeout for initial load (default: 10 seconds)
+      initTimeout: const Duration(seconds: 10),
+
       // Callback when status changes
       onStatusChanged: (isBlocked, message) {
         print("Block status changed: $isBlocked");

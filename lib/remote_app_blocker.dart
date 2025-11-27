@@ -54,6 +54,10 @@ class RemoteBlockConfig {
 /// Abstract provider for loading config from any source.
 abstract class BlockStatusProvider {
   Future<RemoteBlockConfig?> loadConfig();
+
+  /// Optional stream for real-time updates.
+  /// If provided, the gate will listen to this stream for changes.
+  Stream<RemoteBlockConfig?>? get onUpdate => null;
 }
 
 /// HTTP JSON provider.
@@ -131,6 +135,9 @@ class HttpBlockStatusProvider implements BlockStatusProvider {
     final hmacSha = Hmac(sha256, utf8.encode(hmacSecret!));
     return hmacSha.convert(utf8.encode(payload)).toString();
   }
+
+  @override
+  Stream<RemoteBlockConfig?>? get onUpdate => null;
 }
 
 /// Firestore provider.
@@ -159,6 +166,18 @@ class FirestoreBlockStatusProvider implements BlockStatusProvider {
 
     return RemoteBlockConfig.fromJson(Map<String, dynamic>.from(data));
   }
+
+  @override
+  Stream<RemoteBlockConfig?>? get onUpdate {
+    return firestore.collection(collectionPath).doc(documentId).snapshots().map(
+      (doc) {
+        if (!doc.exists) return null;
+        final data = doc.data();
+        if (data == null) return null;
+        return RemoteBlockConfig.fromJson(Map<String, dynamic>.from(data));
+      },
+    );
+  }
 }
 
 /// Firebase Remote Config provider.
@@ -183,6 +202,23 @@ class RemoteConfigBlockStatusProvider implements BlockStatusProvider {
       print(data);
     }
     return RemoteBlockConfig.fromJson(data);
+  }
+
+  @override
+  Stream<RemoteBlockConfig?>? get onUpdate {
+    return remoteConfig.onConfigUpdated.asyncMap((update) async {
+      await remoteConfig.activate();
+      final jsonString = remoteConfig.getString(key);
+      if (jsonString.isEmpty) return null;
+
+      try {
+        final Map<String, dynamic> data = jsonDecode(jsonString);
+        return RemoteBlockConfig.fromJson(data);
+      } catch (e) {
+        if (kDebugMode) print('Error parsing remote config update: $e');
+        return null;
+      }
+    });
   }
 }
 
@@ -217,6 +253,11 @@ class RemoteAppGate extends StatefulWidget {
   /// Default is 5 minutes.
   final Duration refreshInterval;
 
+  /// Maximum time to wait for initial configuration load.
+  /// If this timeout is reached, the app will fallback to cache or allowed state.
+  /// Default is 10 seconds.
+  final Duration initTimeout;
+
   /// Callback when the block status changes.
   /// Useful for analytics or notifications.
   final void Function(bool isBlocked, String message)? onStatusChanged;
@@ -231,6 +272,7 @@ class RemoteAppGate extends StatefulWidget {
     this.appVersion,
     this.cacheLastDecision = true,
     this.refreshInterval = const Duration(minutes: 5),
+    this.initTimeout = const Duration(seconds: 10),
     this.onStatusChanged,
   });
 
@@ -258,22 +300,57 @@ class _RemoteAppGateState extends State<RemoteAppGate> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _cancelStreams();
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(RemoteAppGate oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.refreshInterval != oldWidget.refreshInterval ||
+        widget.providers != oldWidget.providers) {
+      _refreshTimer?.cancel();
+      _cancelStreams();
+      _startPeriodicRefresh();
+    }
+  }
+
+  void _cancelStreams() {
+    for (final sub in _streamSubscriptions) {
+      sub.cancel();
+    }
+    _streamSubscriptions.clear();
+  }
+
+  final List<StreamSubscription> _streamSubscriptions = [];
+
   void _startPeriodicRefresh() {
+    // 1. Periodic polling
     if (widget.refreshInterval > Duration.zero) {
       _refreshTimer = Timer.periodic(widget.refreshInterval, (_) {
         _refreshConfig();
       });
+    }
+
+    // 2. Real-time streams
+    for (final provider in widget.providers) {
+      final stream = provider.onUpdate;
+      if (stream != null) {
+        _streamSubscriptions.add(
+          stream.listen((config) {
+            if (config != null) {
+              _updateStateFromConfig(config);
+            }
+          }),
+        );
+      }
     }
   }
 
   /// Manually refresh the block configuration.
   /// Useful for pull-to-refresh or manual checks.
   Future<void> _refreshConfig() async {
-    final prefs = await SharedPreferences.getInstance();
-
+    // prefs not needed here as _updateStateFromConfig gets it again
     try {
       RemoteBlockConfig? config;
 
@@ -283,33 +360,38 @@ class _RemoteAppGateState extends State<RemoteAppGate> {
       }
 
       if (config != null) {
-        final newIsBlocked = _evaluateConfig(config, widget.appVersion);
-        final newMessage = config.message.isEmpty
-            ? 'The app is currently unavailable.'
-            : config.message;
-
-        // Only update if status changed
-        if (newIsBlocked != _isBlocked || newMessage != _message) {
-          if (mounted) {
-            setState(() {
-              _isBlocked = newIsBlocked;
-              _message = newMessage;
-              _hasError = false;
-            });
-          }
-
-          // Notify callback
-          widget.onStatusChanged?.call(_isBlocked, _message);
-
-          // Update cache
-          if (widget.cacheLastDecision) {
-            await prefs.setBool(_prefsBlockedKey, _isBlocked);
-            await prefs.setString(_prefsMessageKey, _message);
-          }
-        }
+        _updateStateFromConfig(config);
       }
     } catch (_) {
       // Silently fail on refresh errors - keep current state
+    }
+  }
+
+  Future<void> _updateStateFromConfig(RemoteBlockConfig config) async {
+    final prefs = await SharedPreferences.getInstance();
+    final newIsBlocked = _evaluateConfig(config, widget.appVersion);
+    final newMessage = config.message.isEmpty
+        ? 'The app is currently unavailable.'
+        : config.message;
+
+    // Only update if status changed
+    if (newIsBlocked != _isBlocked || newMessage != _message) {
+      if (mounted) {
+        setState(() {
+          _isBlocked = newIsBlocked;
+          _message = newMessage;
+          _hasError = false;
+        });
+      }
+
+      // Notify callback
+      widget.onStatusChanged?.call(_isBlocked, _message);
+
+      // Update cache
+      if (widget.cacheLastDecision) {
+        await prefs.setBool(_prefsBlockedKey, _isBlocked);
+        await prefs.setString(_prefsMessageKey, _message);
+      }
     }
   }
 
@@ -319,9 +401,19 @@ class _RemoteAppGateState extends State<RemoteAppGate> {
     try {
       RemoteBlockConfig? config;
 
-      for (final provider in widget.providers) {
-        config = await provider.loadConfig();
-        if (config != null) break;
+      // Try providers with timeout
+      try {
+        await Future.forEach(widget.providers, (
+          BlockStatusProvider provider,
+        ) async {
+          if (config != null) return; // Already found
+          config = await provider.loadConfig();
+        }).timeout(widget.initTimeout);
+      } on TimeoutException {
+        if (kDebugMode) {
+          print('RemoteAppGate: Initialization timed out');
+        }
+        // Fallthrough to cache check
       }
 
       if (config == null) {
@@ -337,10 +429,10 @@ class _RemoteAppGateState extends State<RemoteAppGate> {
           _hasError = true;
         }
       } else {
-        _isBlocked = _evaluateConfig(config, widget.appVersion);
-        _message = config.message.isEmpty
+        _isBlocked = _evaluateConfig(config!, widget.appVersion);
+        _message = config!.message.isEmpty
             ? 'The app is currently unavailable.'
-            : config.message;
+            : config!.message;
         _hasError = false;
 
         // Notify callback on initial load

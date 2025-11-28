@@ -10,7 +10,6 @@ import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 
 /// Configuration model that can come from HTTP, Firestore, or Remote Config.
 class RemoteBlockConfig {
@@ -241,9 +240,6 @@ class RemoteAppGate extends StatefulWidget {
   /// Use package_info_plus or similar to get this and pass it in.
   final String? appVersion;
 
-  /// Whether to cache last decision (blocked/unblocked) locally.
-  final bool cacheLastDecision;
-
   /// How often to check for configuration updates.
   /// Set to Duration.zero to disable periodic refresh.
   /// Default is 5 minutes.
@@ -278,8 +274,7 @@ class RemoteAppGate extends StatefulWidget {
     this.loading,
     this.errorPage,
     this.appVersion,
-    this.cacheLastDecision = true,
-    this.refreshInterval = const Duration(minutes: 5),
+    this.refreshInterval = const Duration(minutes: 10),
     this.initTimeout = const Duration(seconds: 10),
     this.onStatusChanged,
     this.blockedPageStyle,
@@ -297,9 +292,6 @@ class _RemoteAppGateState extends State<RemoteAppGate> {
   bool _isBlocked = false;
   String _message = '';
   Timer? _refreshTimer;
-
-  static const _prefsBlockedKey = 'rab_isBlocked';
-  static const _prefsMessageKey = 'rab_message';
 
   @override
   void initState() {
@@ -379,7 +371,6 @@ class _RemoteAppGateState extends State<RemoteAppGate> {
   }
 
   Future<void> _updateStateFromConfig(RemoteBlockConfig config) async {
-    final prefs = await SharedPreferences.getInstance();
     final newIsBlocked = _evaluateConfig(config, widget.appVersion);
     final newMessage = config.message.isEmpty
         ? 'The app is currently unavailable.'
@@ -397,18 +388,10 @@ class _RemoteAppGateState extends State<RemoteAppGate> {
 
       // Notify callback
       widget.onStatusChanged?.call(_isBlocked, _message);
-
-      // Update cache
-      if (widget.cacheLastDecision) {
-        await prefs.setBool(_prefsBlockedKey, _isBlocked);
-        await prefs.setString(_prefsMessageKey, _message);
-      }
     }
   }
 
   Future<void> _init() async {
-    final prefs = await SharedPreferences.getInstance();
-
     try {
       RemoteBlockConfig? config;
 
@@ -424,21 +407,13 @@ class _RemoteAppGateState extends State<RemoteAppGate> {
         if (kDebugMode) {
           print('RemoteAppGate: Initialization timed out');
         }
-        // Fallthrough to cache check
+        // Set error state
+        _hasError = true;
       }
 
       if (config == null) {
-        // No provider gave data – try cache
-        final cachedBlocked = prefs.getBool(_prefsBlockedKey);
-        final cachedMessage = prefs.getString(_prefsMessageKey);
-
-        if (cachedBlocked != null) {
-          _isBlocked = cachedBlocked;
-          _message = cachedMessage ?? '';
-          _hasError = false;
-        } else {
-          _hasError = true;
-        }
+        // No provider gave data
+        _hasError = true;
       } else {
         _isBlocked = _evaluateConfig(config!, widget.appVersion);
         _message = config!.message.isEmpty
@@ -448,24 +423,10 @@ class _RemoteAppGateState extends State<RemoteAppGate> {
 
         // Notify callback on initial load
         widget.onStatusChanged?.call(_isBlocked, _message);
-
-        if (widget.cacheLastDecision) {
-          await prefs.setBool(_prefsBlockedKey, _isBlocked);
-          await prefs.setString(_prefsMessageKey, _message);
-        }
       }
     } catch (_) {
-      // On error, fallback to cache
-      final cachedBlocked = prefs.getBool(_prefsBlockedKey);
-      final cachedMessage = prefs.getString(_prefsMessageKey);
-
-      if (cachedBlocked != null) {
-        _isBlocked = cachedBlocked;
-        _message = cachedMessage ?? '';
-        _hasError = false;
-      } else {
-        _hasError = true;
-      }
+      // On error, set error state
+      _hasError = true;
     } finally {
       if (mounted) {
         setState(() {

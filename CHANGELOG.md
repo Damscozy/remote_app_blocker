@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.0.3+5] - 2025-11-26
+## [0.0.4] - 2025-11-28
 
 ### Added
 - Real-time block status updates via `refreshInterval` and Stream-based providers
@@ -24,6 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated documentation to reflect current version
 - Improved example code structure and comments
 - Optimized initialization logic and memory management
+
+### Changed
+- **BREAKING**: Removed `cacheLastDecision` parameter and SharedPreferences caching
+- Changed default `refreshInterval` from 5 minutes to 10 minutes
+- Firebase/Firestore providers now rely purely on real-time streams
+- HTTP provider uses polling only (no cache fallback)
 
 ## [0.0.2] - 2025-11-25
 

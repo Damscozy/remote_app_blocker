@@ -77,8 +77,9 @@ class MyRoot extends StatelessWidget {
     return RemoteAppGate(
       appVersion: "1.0.0", // example — use package_info_plus to fetch real version
       
-      // Check for updates every 5 minutes (default)
-      refreshInterval: const Duration(minutes: 5),
+      // Check for updates every 10 minutes (default for HTTP)
+      // Firebase/Firestore use real-time streams automatically
+      refreshInterval: const Duration(minutes: 10),
 
       // Timeout for initial load (default: 10 seconds)
       initTimeout: const Duration(seconds: 10),

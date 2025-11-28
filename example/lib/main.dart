@@ -44,9 +44,9 @@ class MyRoot extends StatelessWidget {
         // ),
       ],
 
-      // NEW: Automatically check for updates every 5 minutes
+      // Real-time updates via HTTP polling (every 10 minutes by default)
       // The UI will update dynamically when isBlocked changes!
-      refreshInterval: const Duration(seconds: 10),
+      refreshInterval: const Duration(minutes: 10),
 
       // Custom animation settings
       animationDuration: const Duration(milliseconds: 800),
